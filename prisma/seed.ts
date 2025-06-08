@@ -1,47 +1,38 @@
-// prisma/seed.ts
-
 import { PrismaClient } from '@prisma/client';
-
-// initialize Prisma Client
+import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  // create two dummy articles
-  const post1 = await prisma.article.upsert({
-    where: { title: 'Prisma Adds Support for MongoDB' },
+  // Create roles first (if roles are in a separate table, you can adjust accordingly)
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@example.com' },
     update: {},
     create: {
-      title: 'Prisma Adds Support for MongoDB',
-      body: 'Support for MongoDB has been one of the most requested features since the initial release of...',
-      description:
-        "We are excited to share that today's Prisma ORM release adds stable support for MongoDB!",
-      published: false,
+      name: 'Admin User',
+      email: 'admin@example.com',
+      password: bcrypt.hashSync('securepassword', 10), 
+      Role: 'ADMIN', // Assuming enum or string field
     },
   });
 
-  const post2 = await prisma.article.upsert({
-    where: { title: "What's new in Prisma? (Q1/22)" },
+  const regular = await prisma.user.upsert({
+    where: { email: 'user@example.com' },
     update: {},
     create: {
-      title: "What's new in Prisma? (Q1/22)",
-      body: 'Our engineers have been working hard, issuing new releases with many improvements...',
-      description:
-        'Learn about everything in the Prisma ecosystem and community from January to March 2022.',
-      published: true,
+      name: 'Regular User',
+      email: 'user@example.com',
+      password: bcrypt.hashSync('securepassword', 10), 
+      Role: 'USER',
     },
   });
 
-  console.log({ post1, post2 });
+  console.log({ admin, regular });
 }
 
-// execute the main function
 main()
+  .then(() => prisma.$disconnect())
   .catch((e) => {
     console.error(e);
+    prisma.$disconnect();
     process.exit(1);
-  })
-  .finally(async () => {
-    // close Prisma Client at the end
-    await prisma.$disconnect();
   });
-

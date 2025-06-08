@@ -5,28 +5,25 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RefreshAuthGuard } from './guards/refresh-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
+import { LoginDto } from './dto/login/login';
+import { ApiOperation, ApiTags,ApiResponse } from '@nestjs/swagger';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
-
+  
   @Post('login')
-  async login(@Body() loginDto: { username: string; password: string }) {
-    // 1. Validate user exists
+  @ApiOperation({ summary: 'User login' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  async login(@Body() loginDto: LoginDto) {
     const user = await this.authService.validateUser(
-      loginDto.username, 
-      loginDto.password
+      loginDto.email,
+      loginDto.password,
     );
-    
-    // 2. Throw error if invalid
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    // 3. Return tokens if valid
     return this.authService.login(user);
   }
-
+    
   @Post('refresh')
   @UseGuards(RefreshAuthGuard)
   async refresh(@Req() req:any) {

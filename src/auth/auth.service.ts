@@ -1,45 +1,78 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { PrismaClient } from '@prisma/client';
+import { log } from 'console';
+
+const prisma = new PrismaClient();
 
 @Injectable()
 export class AuthService {
   constructor(private jwtService: JwtService) {}
 
-  private users = [
-    {
-      id: 1,
-      username: 'admin',
-      password: bcrypt.hashSync('securepassword', 10), // Hashed password
-      roles: ['admin']
+  async validateUser(email: string, pass: string): Promise<any> {
+    try {
+      const user = await prisma.user.findFirst({ where: { email } });
+      console.log(user);
+  
+      if (!user) {
+        throw new UnauthorizedException('Invalid email or password');
+      }
+  
+      const isPasswordValid = await bcrypt.compare(pass, user.password);
+  
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('Invalid email or password');
+      }
+  
+      const { password, ...sanitizedUser } = user;
+      return sanitizedUser;
+    } catch (error) {
+      console.error('Error in validateUser:', error);
+      // If the error is already an UnauthorizedException, rethrow it
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Login failed');
     }
-  ];
-
-  async validateUser(username: string, pass: string): Promise<any> {
-    const user = this.users.find(u => u.username === username);
-    if (user && await bcrypt.compare(pass, user.password)) {
-      const { password, ...result } = user;
-      return result;
-    }
-    return null;
   }
-
+  
+  
   async login(user: any) {
-    const payload = { 
-      username: user.username, 
-      sub: user.id,
-      roles: user.roles
-    };
-    return {
-      access_token: this.jwtService.sign(payload, {
-        secret: process.env.JWT_SECRET || "MY SECRET",
-        expiresIn: '1h'
-      }),
-      refresh_token: this.jwtService.sign(payload, {
-        secret: process.env.JWT_REFRESH_SECRET || "MY SECRET",
-        expiresIn: '7d'
-      })
-    };
+    try {
+      const payload = {
+        email: user.email,
+        sub: user.id,
+        roles: user.roles,
+      };
+  
+      const accessToken = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET || 'MY SECRET',
+        expiresIn: '1h',
+      });
+  
+      const refreshToken = this.jwtService.sign(payload, {
+        secret: process.env.JWT_REFRESH_SECRET || 'MY SECRET',
+        expiresIn: '7d',
+      });
+  
+      return {
+        status: 'success',
+        message: 'Login successful',
+        data: {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          user: {
+            id: user.id,
+            email: user.email,
+            roles: user.roles,
+          },
+        },
+      };
+    } catch (error) {
+      console.error('Error in login:', error);
+      throw new InternalServerErrorException('Login failed');
+    }
   }
 
   async refreshToken(user: any) {
