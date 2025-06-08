@@ -72,18 +72,31 @@ model Event {
   userId       Int
 }
 
+enum ImageVariant {
+  ORIGINAL
+  WATERMARK
+}
+
 model EventImage {
-  id          Int       @id @default(autoincrement())
-  event       Event     @relation(fields: [eventId], references: [id])
+  id          Int          @id @default(autoincrement())
+  event       Event        @relation(fields: [eventId], references: [id])
   eventId     Int
   url         String
   variant     ImageVariant
-  order       Int       @default(0)
-  createdAt   DateTime  @default(now())
+  order       Int          @default(0)
+  
+  // Relationship to original image (for watermarked versions)
+  original    EventImage?  @relation("OriginalToWatermark", fields: [originalId], references: [id])
+  originalId  Int?
+  
+  // Reference to watermarked versions (for originals)
+  watermarks  EventImage[] @relation("OriginalToWatermark")
+  
+  createdAt   DateTime     @default(now())
 }
 
-// Shared enum for original vs. watermarked
-enum ImageVariant {
-  ORIGINAL   // high-quality for sale
-  WATERMARK  // preview with watermark
-}
+// // Shared enum for original vs. watermarked
+// enum ImageVariant {
+//   ORIGINAL   // high-quality for sale
+//   WATERMARK  // preview with watermark
+// }
