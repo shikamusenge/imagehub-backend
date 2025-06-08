@@ -2,7 +2,6 @@ import { Injectable, InternalServerErrorException, UnauthorizedException } from 
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
-import { log } from 'console';
 
 const prisma = new PrismaClient();
 

@@ -25,18 +25,6 @@ enum Role {
   USER
 }
 
-model Product {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String?
-  price       Float
-  imageUrl    String?
-  user        User     @relation(fields: [userId], references: [id])
-  userId      Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
 model Image {
   id        Int      @id @default(autoincrement())
   url       String
@@ -46,14 +34,56 @@ model Image {
   createdAt DateTime @default(now())
 }
 
+model Product {
+  id           Int             @id @default(autoincrement())
+  name         String
+  description  String?
+  price        Float
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  // relation to gallery
+  images       ProductImage[] 
+  user         User            @relation(fields: [userId], references: [id])
+  userId       Int
+}
+
+model ProductImage {
+  id            Int       @id @default(autoincrement())
+  product       Product   @relation(fields: [productId], references: [id])
+  productId     Int
+  url           String    // stored location of the image
+  variant       ImageVariant
+  order         Int       @default(0) // for defining primary image, ordering
+  createdAt     DateTime  @default(now())
+}
+
 model Event {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String?
-  date        DateTime
-  location    String
-  user        User     @relation(fields: [userId], references: [id])
-  userId      Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           Int             @id @default(autoincrement())
+  title        String
+  description  String?
+  date         DateTime
+  location     String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  images       EventImage[]
+  user         User            @relation(fields: [userId], references: [id])
+  userId       Int
+}
+
+model EventImage {
+  id          Int       @id @default(autoincrement())
+  event       Event     @relation(fields: [eventId], references: [id])
+  eventId     Int
+  url         String
+  variant     ImageVariant
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+}
+
+// Shared enum for original vs. watermarked
+enum ImageVariant {
+  ORIGINAL   // high-quality for sale
+  WATERMARK  // preview with watermark
 }
