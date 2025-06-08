@@ -5,114 +5,13 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import * as sharp from 'sharp';
 import { Blend } from 'sharp';
+import { EventWithRelations } from './dto/event-response.dto';
 
 const prisma = new PrismaClient();
 
 @Injectable()
 export class EventsService {
   constructor(private readonly cloudinary: CloudinaryService) {}
-  
-
-//   async create(createEventDto: CreateEventDto, files: Express.Multer.File[]) {
-//     const { title, description, date, location, userId } = createEventDto;
-
-//  // Watermark configuration
-//  const watermarkConfig = {
-//   text: `© M iMage Store ${new Date().getFullYear()} ${title}`,
-//   width: 400,          // Wider for centered text
-//   height: 80,          // Taller for better visibility
-//   font: 'Arial',
-//   fontSize: 36,
-//   color: 'white',
-//   opacity: 0.7,
-//   backgroundColor: '#00000080'
-// };
-
-//     // Process files in parallel with better error handling
-//     const uploads = await Promise.all(files.map(async (file, index) => {
-//       try {
-//         // 1. Process original image
-//         const originalBuffer = await sharp(file.buffer)
-//           .toFormat('jpeg')
-//           .jpeg({ quality: 90 })
-//           .toBuffer();
-
-//         // 2. Get image metadata for watermark positioning
-//         const metadata = await sharp(originalBuffer).metadata();
-//         if (!metadata.width || !metadata.height) {
-//           throw new Error('Could not read image dimensions');
-//         }
-
-//          // 2. Create watermark SVG
-//          const svgWatermark = Buffer.from(`
-//           <svg width="${watermarkConfig.width}" height="${watermarkConfig.height}">
-//             <rect width="100%" height="100%" 
-//                   fill="${watermarkConfig.backgroundColor}" 
-//                   rx="10" ry="10"/> <!-- Rounded corners -->
-//             <text x="50%" y="50%"
-//                   font-family="${watermarkConfig.font}"
-//                   font-size="${watermarkConfig.fontSize}"
-//                   fill="${watermarkConfig.color}"
-//                   fill-opacity="${watermarkConfig.opacity}"
-//                   text-anchor="middle"
-//                   dominant-baseline="middle">
-//               ${watermarkConfig.text}
-//             </text>
-//           </svg>
-//         `);
-
-//       // 3. Create watermarked version
-//       const watermarkedBuffer = await sharp(originalBuffer)
-//         .composite([{
-//           input: svgWatermark,
-//           gravity: 'center',
-//           top: 10,
-//           left: 10
-//         }])
-//         .toFormat('jpeg')
-//         .jpeg({ quality: 80 })
-//         .toBuffer();
-
-//       // Upload both versions
-//       const [origResult, wmResult] = await Promise.all([
-//         this.cloudinary.uploadBuffer(originalBuffer, { folder: 'events/original' }),
-//         this.cloudinary.uploadBuffer(watermarkedBuffer, { folder: 'events/watermark' }),
-//       ]);
-
-//       return [
-//         { url: origResult.secure_url, variant: ImageVariant.ORIGINAL, order: index },
-//         { url: wmResult.secure_url, variant: ImageVariant.WATERMARK, order: index },
-//       ];
-
-//       } catch (error) {
-//         console.log(error);
-        
-//         throw new InternalServerErrorException(`Image ${index + 1} processing failed`);
-//       }
-//     }));
-
-//     // Save to database
-//     try {
-//       const imagesData = uploads.flat();
-//       return await prisma.event.create({
-//         data: {
-//           title,
-//           description,
-//           date,
-//           location,
-//           user: { connect: { id: Number(userId)} },
-//           images: { create: imagesData },
-//         },
-//         include: { images: true },
-//       });
-//     } catch (error) {
-//       console.log(error);
-      
-//       // Optional: Add cleanup for uploaded Cloudinary images
-//       throw new InternalServerErrorException('Failed to create event');
-//     }
-//   }
-
 
 async create(
   createEventDto: CreateEventDto,
@@ -233,24 +132,75 @@ async create(
   });
 }
 
+async findAll(
+  options: {
+    skip?: number;
+    take?: number;
+    includeOriginals?: boolean;
+    includeWatermarks?: boolean;
+    upcomingOnly?: boolean;
+  } = {}
+): Promise<EventWithRelations[]> {
+  const {
+    skip = 0,
+    take = 10,
+    includeOriginals = true,
+    includeWatermarks = false,
+    upcomingOnly = false
+  } = options;
 
+  // Build the image filter
+  const imageFilter: Prisma.EventImageWhereInput = {};
+  if (!includeOriginals && !includeWatermarks) {
+    // If both are false, return empty array (or could throw error)
+    return [];
+  } else if (!includeOriginals) {
+    imageFilter.variant = 'WATERMARK';
+  } else if (!includeWatermarks) {
+    imageFilter.variant = 'ORIGINAL';
+  }
+  // else - include both (no filter)
 
-  async findAll() {
-    return prisma.event.findMany({
-      include: {
-        images: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
+  const events = await prisma.event.findMany({
+    skip,
+    take,
+    where: upcomingOnly ? { date: { gte: new Date() } } : {},
+    include: {
+      images: {
+        where: imageFilter,
+        orderBy: { order: 'asc' },
+      },
+      user: {
+        select: {
+          id: true,
+          name: true,
         },
       },
-      orderBy: {
-        date: 'desc',
+      _count: {
+        select: {
+          images: true,
+        },
       },
-    });
-  }
+    },
+    orderBy: [
+      { date: 'asc' },
+      { createdAt: 'desc' },
+    ],
+  });
+
+  return events.map(event => ({
+    id: event.id,
+    title: event.title,
+    description: event.description ?? null,
+    date: event.date,
+    location: event.location,
+    user: event.user,
+    images: event.images,
+    createdAt: event.createdAt,
+    updatedAt: event.updatedAt,
+    _count: event._count
+  }));
+}
 
   async findOne(id: number) {
     const event = await prisma.event.findUnique({

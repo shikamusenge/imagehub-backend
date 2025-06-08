@@ -12,10 +12,11 @@ model User {
   email     String   @unique
   password  String
   name      String
-  Role      Role    @default(USER)
+  Role      Role     @default(USER)
   products  Product[]
   events    Event[]
   images    Image[]
+  orders    Order[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -29,47 +30,48 @@ model Image {
   id        Int      @id @default(autoincrement())
   url       String
   altText   String?
+  price     Float?
   user      User     @relation(fields: [userId], references: [id])
   userId    Int
+  orderItems OrderItem[]
   createdAt DateTime @default(now())
 }
 
 model Product {
-  id           Int             @id @default(autoincrement())
-  name         String
-  description  String?
-  price        Float
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-
-  // relation to gallery
-  images       ProductImage[] 
-  user         User            @relation(fields: [userId], references: [id])
-  userId       Int
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  price       Float
+  stock       Int       @default(0)
+  images      ProductImage[]
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int
+  orderItems  OrderItem[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model ProductImage {
-  id            Int       @id @default(autoincrement())
-  product       Product   @relation(fields: [productId], references: [id])
-  productId     Int
-  url           String    // stored location of the image
-  variant       ImageVariant
-  order         Int       @default(0) // for defining primary image, ordering
-  createdAt     DateTime  @default(now())
+  id        Int     @id @default(autoincrement())
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  url       String
+  variant   ImageVariant
+  order     Int     @default(0)
+  createdAt DateTime @default(now())
 }
 
 model Event {
-  id           Int             @id @default(autoincrement())
-  title        String
-  description  String?
-  date         DateTime
-  location     String
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-
-  images       EventImage[]
-  user         User            @relation(fields: [userId], references: [id])
-  userId       Int
+  id        Int       @id @default(autoincrement())
+  title     String
+  description String?
+  date      DateTime
+  location  String
+  images    EventImage[]
+  user      User      @relation(fields: [userId], references: [id])
+  userId    Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 enum ImageVariant {
@@ -78,25 +80,55 @@ enum ImageVariant {
 }
 
 model EventImage {
-  id          Int          @id @default(autoincrement())
-  event       Event        @relation(fields: [eventId], references: [id])
-  eventId     Int
-  url         String
-  variant     ImageVariant
-  order       Int          @default(0)
-  
-  // Relationship to original image (for watermarked versions)
-  original    EventImage?  @relation("OriginalToWatermark", fields: [originalId], references: [id])
-  originalId  Int?
-  
-  // Reference to watermarked versions (for originals)
-  watermarks  EventImage[] @relation("OriginalToWatermark")
-  
-  createdAt   DateTime     @default(now())
+  id        Int       @id @default(autoincrement())
+  event     Event     @relation(fields: [eventId], references: [id])
+  eventId   Int
+  url       String
+  variant   ImageVariant
+  order     Int       @default(0)
+  original  EventImage? @relation("OriginalToWatermark", fields: [originalId], references: [id])
+  originalId Int?
+  watermarks EventImage[] @relation("OriginalToWatermark")
+  createdAt DateTime  @default(now())
 }
 
-// // Shared enum for original vs. watermarked
-// enum ImageVariant {
-//   ORIGINAL   // high-quality for sale
-//   WATERMARK  // preview with watermark
-// }
+model Order {
+  id        Int       @id @default(autoincrement())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    Int
+  items     OrderItem[]
+  status    OrderStatus @default(PENDING)
+  total     Float
+  paymentId String?
+  address   Json?     // Shipping address for physical products
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model OrderItem {
+  id          Int       @id @default(autoincrement())
+  order       Order     @relation(fields: [orderId], references: [id])
+  orderId     Int
+  product     Product?  @relation(fields: [productId], references: [id])
+  productId   Int?
+  image       Image?    @relation(fields: [imageId], references: [id])
+  imageId     Int?
+  quantity    Int       @default(1)
+  price       Float     // Snapshot of price at time of purchase
+  itemType    ItemType
+  createdAt   DateTime  @default(now())
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  FAILED
+}
+
+enum ItemType {
+  PRODUCT
+  IMAGE
+}

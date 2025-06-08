@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFiles, BadRequestException, Query } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { EventWithRelations } from './dto/event-response.dto'
+import { ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { EventQueryDto } from './dto/eventQueryDto';
 
 @Controller('events')
 export class EventsController {
@@ -60,9 +62,81 @@ export class EventsController {
   }
 
   @Get()
-  findAll() {
-    return this.eventsService.findAll();
+  @ApiOperation({
+    summary: 'Get paginated list of events',
+    description: 'Retrieves events with optional filters for date range and image types'
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number (default: 1)',
+    type: Number,
+    example: 1
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Items per page (default: 10, max: 100)',
+    type: Number,
+    example: 10
+  })
+  @ApiQuery({
+    name: 'upcoming',
+    required: false,
+    description: 'Filter only upcoming events',
+    type: Boolean,
+    example: false
+  })
+  @ApiQuery({
+    name: 'originals',
+    required: false,
+    description: 'Include original images (default: true)',
+    type: Boolean,
+    example: true
+  })
+  @ApiQuery({
+    name: 'watermarks',
+    required: false,
+    description: 'Include watermarked images (default: false)',
+    type: Boolean,
+    example: false
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of events',
+    type: [EventWithRelations]
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid query parameters'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error'
+  })
+  async findAll(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+    @Query('upcoming') upcoming?: string,
+    @Query('originals') originals?: string,
+    @Query('watermarks') watermarks?: string
+  ): Promise<EventWithRelations[]> {
+    // Convert and validate query parameters
+    const parsedPage = Math.max(1, parseInt(page, 10)) || 1;
+    const parsedLimit = Math.min(100, Math.max(1, parseInt(limit, 10))) || 10;
+    const parsedUpcoming = upcoming?.toLowerCase() === 'true';
+    const parsedOriginals = originals ? originals.toLowerCase() === 'true' : true;
+    const parsedWatermarks = watermarks?.toLowerCase() === 'true';
+
+    return this.eventsService.findAll({
+      skip: (parsedPage - 1) * parsedLimit,
+      take: parsedLimit,
+      upcomingOnly: parsedUpcoming,
+      includeOriginals: parsedOriginals,
+      includeWatermarks: parsedWatermarks
+    });
   }
+
 
   @Get(':id')
   findOne(@Param('id') id: string) {
