@@ -84,6 +84,7 @@ model EventImage {
   event     Event     @relation(fields: [eventId], references: [id])
   eventId   Int
   url       String
+  description String?
   variant   ImageVariant
   order     Int       @default(0)
   original  EventImage? @relation("OriginalToWatermark", fields: [originalId], references: [id])
