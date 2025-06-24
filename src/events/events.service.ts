@@ -13,7 +13,112 @@ const prisma = new PrismaClient();
 export class EventsService {
   constructor(private readonly cloudinary: CloudinaryService) {}
 
-async create(
+async create(createEventDto: CreateEventDto, files: Express.Multer.File[]) {
+  const { title, description, date, location, userId, imageDescriptions } = createEventDto;
+
+  if (!files?.length) {
+    throw new InternalServerErrorException('At least one image file is required');
+  }
+
+  // 1. Process images + upload outside transaction
+  const processedUploads = await Promise.all(files.map(async (file, index) => {
+    const metadata = await sharp(file.buffer).metadata();
+    const imgWidth = metadata.width || 800;
+    const imgHeight = metadata.height || 600;
+
+    const watermarkWidth = Math.floor(imgWidth * 0.5);
+    const watermarkHeight = Math.floor(imgHeight * 0.15);
+    const fontSize = Math.floor(watermarkHeight * 0.4);
+
+    const watermarkSvg = Buffer.from(`
+      <svg width="${watermarkWidth}" height="${watermarkHeight}" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="blur" x="-5%" y="-5%" width="110%" height="110%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+          </filter>
+        </defs>
+        <rect x="0" y="0" width="100%" height="100%" rx="12" ry="12"
+              fill="#00000080" filter="url(#blur)"/>
+        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+              font-family="Helvetica, Arial, sans-serif" font-size="${fontSize}"
+              fill="#ffffff" fill-opacity="0.95" stroke="#222222" stroke-width="1">
+          © IKOMBE Creative ${new Date().getFullYear()}
+        </text>
+      </svg>
+    `);
+
+    const [originalBuffer, watermarkedBuffer] = await Promise.all([
+      sharp(file.buffer).jpeg({ quality: 90 }).toBuffer(),
+      sharp(file.buffer)
+        .composite([
+          {
+            input: await sharp(watermarkSvg).toBuffer(),
+            gravity: 'center',
+            blend: 'overlay',
+          },
+        ])
+        .jpeg({ quality: 85 })
+        .toBuffer(),
+    ]);
+
+    const [originalUpload, watermarkedUpload] = await Promise.all([
+      this.cloudinary.uploadBuffer(originalBuffer, {
+        folder: `events/temp/originals`,
+      }),
+      this.cloudinary.uploadBuffer(watermarkedBuffer, {
+        folder: `events/temp/watermarks`,
+      }),
+    ]);
+
+    return {
+      index,
+      originalUrl: originalUpload.secure_url,
+      watermarkedUrl: watermarkedUpload.secure_url,
+      description: imageDescriptions?.[index] || null,
+    };
+  }));
+
+  // 2. Now create event + images DB records inside transaction (fast DB ops only)
+  return prisma.$transaction(async (prisma) => {
+    const event = await prisma.event.create({
+      data: {
+        title,
+        description,
+        date: new Date(date),
+        location,
+        user: { connect: { id: Number(userId) } },
+      },
+    });
+
+    for (const item of processedUploads) {
+      const originalImage = await prisma.eventImage.create({
+        data: {
+          url: item.originalUrl,
+          variant: 'ORIGINAL',
+          order: item.index,
+          description: item.description,
+          event: { connect: { id: event.id } },
+        },
+      });
+
+      await prisma.eventImage.create({
+        data: {
+          url: item.watermarkedUrl,
+          variant: 'WATERMARK',
+          order: item.index,
+          description: item.description,
+          original: { connect: { id: originalImage.id } },
+          event: { connect: { id: event.id } },
+        },
+      });
+    }
+
+    return { message: 'Event created successfully', eventId: event.id };
+  });
+}
+
+
+async createold(
   createEventDto: CreateEventDto,
   files: Express.Multer.File[],
 ) {

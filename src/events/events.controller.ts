@@ -6,39 +6,44 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { EventWithRelations } from './dto/event-response.dto'
 import { ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { EventQueryDto } from './dto/eventQueryDto';
+import { log } from 'node:console';
 
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
-
-
   @Post()
   @UseInterceptors(FilesInterceptor('files'))
   @ApiOperation({ summary: 'Create a new event with images' })
   @ApiResponse({ status: 201, description: 'Event created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    description: 'Create new event with images',
-    schema: {
-      type: 'object',
-      properties: {
-        files: {
-          type: 'array',
-          items: {
-            type: 'string',
-            format: 'binary',
-          },
-          description: 'Event images (multiple allowed)',
+@ApiBody({
+  description: 'Create new event with images',
+  schema: {
+    type: 'object',
+    properties: {
+      files: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'binary',
         },
-        title: { type: 'string', example: 'Summer Festival' },
-        description: { type: 'string', example: 'Annual summer music festival' },
-        date: { type: 'string', format: 'date-time', example: '2023-07-15T18:00:00Z' },
-        location: { type: 'string', example: 'Central Park' },
-        userId: { type: 'number', example: 1 },
+        description: 'Event images (multiple allowed)',
       },
+      imageDescriptions: {
+        type: 'array',
+        items: { type: 'string' },
+        example: ['Front stage view', 'Crowd dancing']
+      },
+      title: { type: 'string', example: 'Summer Festival' },
+      description: { type: 'string', example: 'Annual summer music festival' },
+      date: { type: 'string', format: 'date-time', example: '2023-07-15T18:00:00Z' },
+      location: { type: 'string', example: 'Central Park' },
+      userId: { type: 'number', example: 1 },
     },
-  })
+    required: ['files', 'title', 'date', 'location', 'userId'],
+  },
+})
   async create(
     @Body() createEventDto: CreateEventDto,
     @UploadedFiles() files: Express.Multer.File[],
@@ -57,7 +62,7 @@ export class EventsController {
         throw new BadRequestException(`File too large: ${file.originalname}`);
       }
     }
-
+    console.log(createEventDto);
     return this.eventsService.create(createEventDto, files);
   }
 
