@@ -58,8 +58,8 @@ export class EventsController {
       if (!allowedMimeTypes.includes(file.mimetype)) {
         throw new BadRequestException(`Unsupported file type: ${file.mimetype}`);
       }
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        throw new BadRequestException(`File too large: ${file.originalname}`);
+      if (file.size > 50 * 1024 * 1024) { // 5MB limit
+        throw new BadRequestException(`File too large: ${file.originalname} Max 50 MB in size`);
       }
     }
     console.log(createEventDto);
