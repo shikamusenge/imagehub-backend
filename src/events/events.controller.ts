@@ -62,7 +62,6 @@ export class EventsController {
         throw new BadRequestException(`File too large: ${file.originalname} Max 50 MB in size`);
       }
     }
-    console.log(createEventDto);
     return this.eventsService.create(createEventDto, files);
   }
 

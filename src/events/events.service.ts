@@ -345,25 +345,25 @@ async findAll(
     }
   }
 
-  async remove(id: number) {
-    try {
-      // First delete associated images to maintain referential integrity
-      await prisma.image.deleteMany({
-        where: { id },
-      });
+async remove(id: number) {
+  try {
+    // First delete associated images
+    await prisma.eventImage.deleteMany({
+      where: { eventId: id }  // Corrected condition
+    });
 
-      return await prisma.event.delete({
-        where: { id },
-      });
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
-          throw new NotFoundException(`Event with ID ${id} not found`);
-        }
+    return await prisma.event.delete({
+      where: { id },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException(`Event with ID ${id} not found`);
       }
-      throw error;
     }
+    throw error;
   }
+}
 
   // Optional: Add pagination version of findAll
   async findPaginated(skip: number, take: number) {
