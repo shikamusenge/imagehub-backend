@@ -26,9 +26,9 @@ async create(createEventDto: CreateEventDto, files: Express.Multer.File[]) {
     const imgWidth = metadata.width || 800;
     const imgHeight = metadata.height || 600;
 
-    const watermarkWidth = Math.floor(imgWidth * 0.5);
+    const watermarkWidth = Math.floor(imgWidth * 0.5)/2;
     const watermarkHeight = Math.floor(imgHeight * 0.15);
-    const fontSize = Math.floor(watermarkHeight * 0.4);
+    const fontSize = Math.floor(watermarkHeight * 0.2);
 
     const watermarkSvg = Buffer.from(`
       <svg width="${watermarkWidth}" height="${watermarkHeight}" xmlns="http://www.w3.org/2000/svg">
@@ -146,7 +146,6 @@ async findAll(
     imageFilter.variant = 'ORIGINAL';
   }
   // else - include both (no filter)
-
   const events = await prisma.event.findMany({
     skip,
     take,
@@ -186,7 +185,7 @@ async findAll(
     updatedAt: event.updatedAt,
     _count: event._count
   }));
-}
+  }
 
   async findOne(id: number) {
     const event = await prisma.event.findUnique({

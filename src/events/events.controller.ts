@@ -1,16 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFiles, BadRequestException, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFiles, BadRequestException, Query, UseGuards } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { EventWithRelations } from './dto/event-response.dto'
 import { ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
-import { EventQueryDto } from './dto/eventQueryDto';
-import { log } from 'node:console';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
+  @UseGuards(AuthGuard('jwt'))
   @Post()
   @UseInterceptors(FilesInterceptor('files'))
   @ApiOperation({ summary: 'Create a new event with images' })
@@ -146,12 +146,14 @@ export class EventsController {
   findOne(@Param('id') id: string) {
     return this.eventsService.findOne(+id);
   }
-
+  
+  @UseGuards(AuthGuard('jwt'))
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto) {
     return this.eventsService.update(+id, updateEventDto);
   }
-
+  
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.eventsService.remove(+id);
