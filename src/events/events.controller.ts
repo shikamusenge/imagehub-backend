@@ -25,7 +25,7 @@ export class EventsController {
       files: {
         type: 'array',
         items: {
-          type: 'string',
+          type: 'file',
           format: 'binary',
         },
         description: 'Event images (multiple allowed)',
