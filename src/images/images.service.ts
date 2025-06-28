@@ -132,6 +132,14 @@ const watermarkSvg = Buffer.from(`
     const existing = await this.prisma.eventImage.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`Image #${id} not found`);
 
+    // If this is a WATERMARK variant and has an originalId, update the original as well
+    if (existing.variant === 'WATERMARK' && existing.originalId) {
+      await this.prisma.eventImage.update({
+        where: { id: existing.originalId },
+        data: updateImageDto,
+      });
+    }
+
     return this.prisma.eventImage.update({
       where: { id },
       data: updateImageDto,
@@ -142,6 +150,12 @@ const watermarkSvg = Buffer.from(`
     const existing = await this.prisma.eventImage.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`Image #${id} not found`);
 
+        // If this is a WATERMARK variant and has an originalId, update the original as well
+    if (existing.variant === 'WATERMARK' && existing.originalId) {
+      await this.prisma.eventImage.delete({
+        where: { id: existing.originalId }
+      });
+    }
     return this.prisma.eventImage.delete({ where: { id } });
   }
 }
