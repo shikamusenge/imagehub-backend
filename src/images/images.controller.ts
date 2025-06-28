@@ -44,25 +44,25 @@ export class ImagesController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Upload a single event image with watermarking' })
   create(
-    @Body() dto: UploadImageDto,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
-          new FileTypeValidator({ fileType: 'image/*' }),
-        ],
-      }),
-    )
-    file: Express.Multer.File,
-  ) {
-    // Map UploadImageDto to CreateImageDto with placeholder values for url and variant
-    const createImageDto: CreateImageDto = {
-      ...dto,
-      url: '', // Placeholder, will be set in service after upload
-      variant: 'ORIGINAL', // or any default value as needed
-    };
-    return this.imagesService.create(createImageDto, file);
-  }
+ @Body() dto: UploadImageDto,
+  @UploadedFile(
+    new ParseFilePipe({
+      validators: [
+        new MaxFileSizeValidator({ maxSize: 50 * 1024 * 1024 }),
+        new FileTypeValidator({ fileType: 'image/*' }),
+      ],
+    })
+  )
+  file: Express.Multer.File,
+) {
+  // Map UploadImageDto to CreateImageDto with placeholder values for url and variant
+  const createImageDto: CreateImageDto = {
+    ...dto,
+    url: '', // Placeholder, will be set in service after upload
+    variant: 'ORIGINAL', // or any default value as needed
+  };
+  return this.imagesService.create(createImageDto, file);
+}
 
   @Get()
   findAll() {
