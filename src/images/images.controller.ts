@@ -24,7 +24,6 @@ import { AuthGuard } from '@nestjs/passport';
 @Controller('images')
 export class ImagesController {
   constructor(private readonly imagesService: ImagesService) {}
-   @UseGuards(AuthGuard('jwt'))
   @Post()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
