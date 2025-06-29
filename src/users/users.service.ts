@@ -52,18 +52,12 @@ export class UsersService {
     throw new NotFoundException(`User with ID ${id} not found`);
   }
 
-  const { email, password, name, Role } = updateUserDto;
-
-  // Only hash password if provided
-  const hashedPassword = password
-    ? await bcrypt.hash(password, 10)
-    : undefined;
+  const { email, name, Role } = updateUserDto;
 
   return this.prisma.user.update({
     where: { id },
     data: {
       ...(email && { email }),
-      ...(hashedPassword && { password: hashedPassword }),
       ...(name && { name }),
       ...(Role && { Role: Role }), // Ensure Prisma uses `role`, not `Role`
     },
@@ -83,5 +77,30 @@ export class UsersService {
     return await this.prisma.user.delete({
       where: { id },
     });
+  }
+
+  async changePassword(userId: number, oldPassword: string, newPassword: string): Promise<User> {
+    try {
+      console.log({ userId, oldPassword, newPassword });
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+      if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+      }
+
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) {
+      throw new ConflictException('Old password is incorrect');
+      }
+
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+      return await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword },
+      });
+    } catch (error) {
+      return error.response || error.message || error;
+    }
   }
 }

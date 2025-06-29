@@ -11,9 +11,7 @@ export class AuthService {
 
   async validateUser(email: string, pass: string): Promise<any> {
     try {
-      const user = await prisma.user.findFirst({ where: { email } });
-      console.log(user);
-  
+      const user = await prisma.user.findFirst({ where: { email } });  
       if (!user) {
         throw new UnauthorizedException('Invalid email or password');
       }
@@ -42,7 +40,7 @@ export class AuthService {
       const payload = {
         email: user.email,
         sub: user.id,
-        roles: user.roles,
+        role: user.Role,
       };
   
       const accessToken = this.jwtService.sign(payload, {
@@ -64,7 +62,7 @@ export class AuthService {
           user: {
             id: user.id,
             email: user.email,
-            roles: user.roles,
+            role: user.Role,
           },
         },
       };
