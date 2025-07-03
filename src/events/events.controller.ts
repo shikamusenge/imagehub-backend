@@ -10,7 +10,7 @@ import { AuthGuard } from '@nestjs/passport';
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
-  @UseGuards(AuthGuard('jwt'))
+  // @UseGuards(AuthGuard('jwt'))
   @Post()
   @UseInterceptors(FilesInterceptor('files'))
   @ApiOperation({ summary: 'Create a new event with images' })
@@ -22,6 +22,12 @@ export class EventsController {
   schema: {
     type: 'object',
     properties: {
+      eventType:{
+        type: 'string',
+        enum: ['football','vollyball','basketball','concert', 'festival', 'conference', 'workshop'],
+        example: 'football',
+        description: 'Type of the event'
+      },
       files: {
         type: 'array',
         items: {

@@ -60,10 +60,18 @@ model ProductImage {
   order     Int     @default(0)
   createdAt DateTime @default(now())
 }
+enum EventType{
+  football
+  vollyball
+  basketbal
+  tenis
+  other
+}
 
 model Event {
   id        Int       @id @default(autoincrement())
   title     String
+  eventType      EventType    @default('football')
   description String?
   date      DateTime
   location  String
@@ -78,6 +86,8 @@ enum ImageVariant {
   ORIGINAL
   WATERMARK
 }
+
+
 
 model EventImage {
   id        Int       @id @default(autoincrement())

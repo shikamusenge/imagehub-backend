@@ -19,6 +19,14 @@ export class CreateEventDto {
   @IsString()
   @IsOptional()
   description?: string;
+  @ApiProperty({
+    example: 'concert',
+    description: 'Type of the event',
+    enum: ['football', 'volleyball', 'basketball', 'concert', 'festival', 'conference', 'workshop'],
+  })
+  @IsString()
+  @IsNotEmpty({ message: 'Event type is required' })
+  eventType: 'football' | 'volleyball' | 'basketball' |'tenis' | 'concert' | 'festival' | 'conference' | 'workshop'| 'other';
 
   @ApiProperty({ example: '2025-07-15T10:00:00.000Z' })
   @IsDateString({}, { message: 'Date must be an ISO8601 string' })
@@ -34,7 +42,7 @@ export class CreateEventDto {
   @Type(() => Number)
   userId: number;
 
-  @ApiPropertyOptional({
+@ApiPropertyOptional({
     description: 'Descriptions for each image, in order',
     type: [String],
     example: ['Main stage view', 'Artist booth 1'],
