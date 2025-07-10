@@ -71,7 +71,7 @@ enum EventType{
 model Event {
   id        Int       @id @default(autoincrement())
   title     String
-  eventType      EventType    @default('football')
+  eventType EventType    @default(football)
   description String?
   date      DateTime
   location  String
