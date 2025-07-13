@@ -60,11 +60,15 @@ model ProductImage {
   order     Int     @default(0)
   createdAt DateTime @default(now())
 }
-enum EventType{
+enum EventType {
   football
-  vollyball
-  basketbal
+  volleyball
+  basketball
   tenis
+  concert
+  festival
+  conference
+  workshop
   other
 }
 

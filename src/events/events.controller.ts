@@ -77,6 +77,14 @@ export class EventsController {
     description: 'Retrieves events with optional filters for date range and image types'
   })
   @ApiQuery({
+    name: 'eventType',
+    required: false,
+    description: 'Filter by event type',
+    type: String,
+    enum: ['football', 'volleyball', 'basketball', 'concert', 'festival', 'conference', 'workshop'],
+    example: 'concert'
+  })
+  @ApiQuery({
     name: 'page',
     required: false,
     description: 'Page number (default: 1)',
@@ -156,7 +164,15 @@ export class EventsController {
   @UseGuards(AuthGuard('jwt'))
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto) {
-    return this.eventsService.update(+id, updateEventDto);
+    // Map UpdateEventDto to Prisma.EventUpdateInput
+    const { eventType, ...rest } = updateEventDto;
+    const prismaUpdateInput: any = {
+      ...rest,
+    };
+    if (eventType !== undefined) {
+      prismaUpdateInput.eventType = { set: eventType };
+    }
+    return this.eventsService.update(+id, prismaUpdateInput);
   }
   
   @UseGuards(AuthGuard('jwt'))
