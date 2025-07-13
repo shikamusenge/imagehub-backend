@@ -4,7 +4,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { EventWithRelations } from './dto/event-response.dto'
-import { ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('events')
@@ -12,6 +12,7 @@ export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
   // @UseGuards(AuthGuard('jwt'))
   @Post()
+  @ApiBearerAuth()
   @UseInterceptors(FilesInterceptor('files'))
   @ApiOperation({ summary: 'Create a new event with images' })
   @ApiResponse({ status: 201, description: 'Event created successfully' })

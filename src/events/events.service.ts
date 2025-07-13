@@ -95,6 +95,7 @@ export class EventsService {
           title,
           description,
           date: new Date(date),
+          eventType: EventType[createEventDto.eventType as keyof typeof EventType],
           location,
           user: { connect: { id: Number(userId) } },
         },
