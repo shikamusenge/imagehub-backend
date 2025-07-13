@@ -16,6 +16,19 @@ export class AuthController {
   @Post('login')
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiOperation({
+    summary: 'User login',
+    requestBody: {
+      content: {
+        'application/json': {
+          example: {
+            email: 'user@example.com',
+            password: 'securepassword', 
+          },
+        },
+      },
+    },
+  })
   async login(@Body() loginDto: LoginDto) {
     const user = await this.authService.validateUser(
       loginDto.email,
